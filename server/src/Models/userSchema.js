@@ -7,7 +7,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    emai: {
+    email: {
       type: String,
       required: true,
       unique: true,
@@ -16,19 +16,22 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    refreshToken: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
-userSchema.pre("save", async (next) => {
+userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 8);
   }
   next();
 });
-userSchema.methods.isPasswordCorrect = async (password) => {
+userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
-userSchema.methods.generateAccessToken = async () => {
+userSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -41,7 +44,7 @@ userSchema.methods.generateAccessToken = async () => {
     }
   );
 };
-userSchema.methods.generateRefreshToken = async () => {
+userSchema.methods.generateRefreshToken = async function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -54,4 +57,4 @@ userSchema.methods.generateRefreshToken = async () => {
     }
   );
 };
-const User = model("User", userSchema);
+export const User = model("User", userSchema);
