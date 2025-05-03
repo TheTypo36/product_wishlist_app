@@ -7,7 +7,7 @@ export const generateAccessAndRefreshToken = async (userId) => {
 
   try {
     const user = await User.findById(userId);
-
+    console.log("user in generateToken", user);
     if (!user) {
       throw new Error({ message: "user doesn't exists " });
     }
@@ -16,10 +16,12 @@ export const generateAccessAndRefreshToken = async (userId) => {
     const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
-    user.save({ validateBeforeSave: false });
+    await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
-  } catch (error) {}
+  } catch (error) {
+    throw new Error(error);
+  }
 };
 export const register = async (req, res) => {
   try {
@@ -62,6 +64,7 @@ export const option = {
 export const signIn = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("in sigin ", email, password);
     if (!email || !password) {
       return res
         .status(404)
@@ -72,16 +75,23 @@ export const signIn = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "user doesn't exist" });
     }
-
-    if (!user.isPasswordCorrect(password)) {
+    console.log("in sigin user ", user);
+    if (!(await user.isPasswordCorrect(password))) {
       return res.status(400).json({ message: "wrong password" });
     }
-
-    const { accessToken, refreshToken } = generateAccessAndRefreshToken(
+    console.log("password checked and is correct");
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
       user._id
     );
 
-    if (!token) {
+    console.log(
+      "in sigin just got the tokens",
+      accessToken,
+      "\n",
+      refreshToken
+    );
+
+    if (!accessToken || !refreshToken) {
       return res
         .status(500)
         .json({ message: "internal server erro token not generate" });
@@ -93,8 +103,8 @@ export const signIn = async (req, res) => {
       .cookie("refreshToken", refreshToken, option)
       .json({
         user,
-        accessToken,
-        refreshToken,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
       });
   } catch (error) {
     console.log(error);
